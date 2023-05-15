@@ -1,0 +1,62 @@
+service: pfservice
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: ap-northeast-1
+  profile: axhizdev
+  environment:
+    AWS_PROFILE: axhizdev
+    LIVES_TABLE_NAME: '202305-portofolio-lives-table'
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:*
+      Resource: '*'
+
+plugins:
+  - serverless-layers
+  - serverless-offline
+  - serverless-dynamodb-local
+custom:
+  serverless-layers:
+    layersDeploymentBucket: 202305-portofolio-api-service-lambda-layers
+  # dynamodb:
+  #   stages:
+  #     - dev
+  #   start:
+  #     port: 8000
+  #     migrate: true
+  #     dbPath: ./dynamodb
+
+package:
+  individually: true
+  include:
+    - dist/**
+
+functions:
+  index:
+    handler: dist/index.handler
+    events:
+      - http:
+          cors: true
+          path: '/'
+          method: any
+      - http:
+          cors: true
+          path: '{proxy+}'
+          method: any
+
+resources:
+  Resources:
+    DynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: liveId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: liveId
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: '202305-portofolio-lives-table'
